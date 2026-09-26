@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Triết học nguu</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:system-ui,Arial;background:#0f172a;color:#e5e7eb}
+header{padding:18px;text-align:center;background:#111827;position:sticky;top:0;z-index:2}
+h1{margin:0;font-size:28px} .sub{color:#94a3b8}
+.wrap{max-width:900px;margin:auto;padding:18px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
+button,select{border:0;border-radius:12px;padding:12px;background:#2563eb;color:white;font-weight:700;cursor:pointer}
+button.secondary{background:#334155}button.good{background:#16a34a}button.bad{background:#dc2626}
+.card{background:#1e293b;border-radius:18px;padding:20px;margin:14px 0;box-shadow:0 8px 30px #0004}
+.stat{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}.pill{background:#334155;padding:9px 13px;border-radius:999px}
+.option{display:block;width:100%;text-align:left;margin:9px 0;background:#334155}.option:hover{background:#475569}
+.option.correct{background:#15803d}.option.wrong{background:#b91c1c}
+.hidden{display:none}.bar{height:10px;background:#334155;border-radius:9px;overflow:hidden}.fill{height:100%;background:#22c55e}
+.small{font-size:13px;color:#94a3b8}.rank{font-size:18px;margin:8px 0}
+</style>
+
+<style>
+#loginOverlay{position:fixed;inset:0;background:linear-gradient(135deg,#111827,#312e81);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px}
+.loginBox{width:min(420px,100%);background:#fff;border-radius:22px;padding:30px;box-shadow:0 20px 60px #0008;text-align:center}
+.loginBox h1{margin:0 0 8px;font-size:28px}.loginBox p{color:#64748b}
+#playerName{width:100%;box-sizing:border-box;padding:14px;border:2px solid #e2e8f0;border-radius:12px;font-size:16px;margin:12px 0}
+#loginBtn{width:100%;border:0;border-radius:12px;padding:14px;background:#4f46e5;color:#fff;font-weight:700;font-size:16px;cursor:pointer}
+.playerBar{display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap}
+.rankTable{width:100%;border-collapse:collapse;margin-top:12px}.rankTable th,.rankTable td{padding:10px;border-bottom:1px solid #e5e7eb;text-align:left}.rankTable th{background:#f8fafc}
+.meRow{font-weight:700;background:#eef2ff}
+</style>
+</head>
+<body>
+<div id="loginOverlay">
+  <div class="loginBox">
+    <h1>📚 TRIẾT HỌC NGUU</h1>
+    <p>Nhập tên để tham gia bảng xếp hạng</p>
+    <input id="playerName" maxlength="24" placeholder="Tên người chơi..." autocomplete="off">
+    <button id="loginBtn">Vào học</button>
+  </div>
+</div>
+
+<header><h1>🧠 TRIẾT HỌC NGUU</h1><div class="sub">Ôn thi Triết học Mác – Lênin</div></header>
+<div class="wrap">
+<div id="home" class="card">
+<h2>Chọn phần</h2>
+<div class="grid">
+<button onclick="start('all')">🔥 Tất cả</button>
+<button onclick="start('1')">Chương 1</button>
+<button onclick="start('2')">Chương 2</button>
+<button onclick="start('3')">Chương 3</button>
+</div>
+<div class="stat" style="margin-top:15px">
+<span class="pill">🏆 Điểm: <b id="score">0</b></span>
+<span class="pill">🔥 Chuỗi: <b id="streak">0</b> ngày</span>
+<span class="pill">📚 Đã làm: <b id="done">0</b></span>
+</div>
+</div>
+
+<div id="quiz" class="hidden">
+<div class="stat"><span class="pill" id="progress"></span><span class="pill">🔥 <b id="qstreak"></b></span></div>
+<div class="bar"><div class="fill" id="bar"></div></div>
+<div class="card"><h2 id="question"></h2><div id="answers"></div></div>
+<button class="secondary" onclick="home()">← Về trang chủ</button>
+</div>
+
+<div id="result" class="card hidden"></div>
+
+<div class="card">
+<h2>🏆 Thành tích</h2><div id="ach"></div>
+<h2>🥇 Xếp hạng</h2><div id="ranking"></div>
+</div>
+</div>
+
+<script>
+/* Dữ liệu mẫu lấy đúng theo ngân hàng câu hỏi đã gửi.
+   Có thể mở rộng thêm câu hỏi theo cùng cấu trúc. */
+const qs=[
+{c:"1",q:"Triết học là… về thế giới và vị trí con người, trong thế giới đó, là khoa học về sự vận động, phát triển chung nhất của tự nhiên, xã hội và tư duy.",a:["Hệ thống quan điểm duy nhất.","Hệ thống lý luận về quan điểm.","Hệ thống lý luận chung nhất.","Hệ thống luận điểm duy nhất"],x:2},
+{c:"1",q:"Tư duy triết học bắt đầu từ đâu?",a:["Từ những lực lượng siêu nhiên ở bên ngoài chi phối nhận thức của con người.","Từ những cảm giác, nhận thức chủ quan của con người.","Từ các triết lý, từ sự khôn ngoan, từ tình yêu sự thông thái dần hình thành các hệ thống những tri thức chung nhất về thế giới.","Tất cả các phương án đều đúng."],x:2},
+{c:"1",q:"“… là khái niệm triết học dùng để chỉ hệ thống các tri thức, quan điểm, tình cảm, niềm tin, lý tưởng xác định về thế giới và vị trí con người trong thế giới đó”.",a:["Phương pháp luận.","Thế giới quan.","Chủ nghĩa duy vật.","Chủ nghĩa duy tâm."],x:1},
+{c:"1",q:"Thế giới quan có thể được hiểu một cách ngắn gọn là:",a:["Hệ thống quan điểm của con người về thế giới.","Bức tranh chung về thế giới.","Cảm nhận về thế giới","Nhận thức chung về cuộc đời"],x:0},
+{c:"1",q:"Triết học có vai trò như thế nào đối với thế giới quan?",a:["Là linh hồn của thế giới quan.","Là nguyên nhân – lý luận của thế giới quan.","Là hạt nhân – lý luận của thế giới quan.","Là vấn đề cơ bản của thế giới quan"],x:2},
+{c:"1",q:"Hai mặt trong vấn đề cơ bản của triết học là:",a:["Khả tri luận và bất khả tri luận.","Nhị nguyên luận và nhất nguyên luận.","Hoài nghi luận và ý thức luận.","Bản thể luận và nhận thức luận."],x:3},
+{c:"1",q:"Mặt bản thể luận trong vấn đề cơ bản của triết học giải quyết nội dung gì?",a:["Mối quan hệ giữa con người với thế giới.","Mối quan hệ giữa vật chất và ý thức.","Mối quan hệ giữa bản chất và hiện tượng.","Mối quan hệ giữa thực thể tự nhiên và thực thể xã hội."],x:1},
+{c:"1",q:"Chủ nghĩa duy tâm có những trường phái nào?",a:["Duy tâm thần bí và duy tầm siêu hình.","Duy tâm khách quan và duy tâm chủ quan.","Duy tâm biện chứng và duy tâm siêu hình.","Duy tâm thần thánh và duy tâm con người."],x:1},
+{c:"1",q:"Chủ nghĩa duy vật có những trường phái nào?",a:["Duy vật siêu hình và duy vật biện chứng.","Duy vật chất phác và duy vật siêu hình.","Duy vật chất phác thời cổ đại, duy vật siêu hình và duy vật biện chứng.","Duy vật chất phác và duy vật biện chứng."],x:2},
+{c:"1",q:"Trong triết học, có hai phương pháp tư duy chung nhất đối lập nhau đó là:",a:["Phương pháp quy nạp và phương pháp diễn dịch.","Phương pháp chứng minh và phương pháp phản chứng.","Phương pháp trừu tượng và phương pháp cụ thể.","Phương pháp biện chứng và phương pháp siêu hình."],x:3},
+{c:"1",q:"Câu nói “Chỉ thấy cây mà không thấy rừng” cho thấy phương pháp tư duy nào trong triết học?",a:["Tư duy biện chứng.","Tư duy siêu hình.","Tư duy trừu tượng.","Tư duy độc lập."],x:1},
+{c:"1",q:"Câu nói “Không ai tắm hai lần trên một dòng sông” cho thấy phương pháp tư duy nào trong triết học?",a:["Tư duy biện chứng.","Tư duy siêu hình.","Tư duy trừu tượng.","Tư duy độc lập."],x:0},
+{c:"1",q:"Khi vận dụng, phương pháp tư duy biện chứng sẽ ưu việt hơn phương pháp tư duy siêu hình ở điểm nào?",a:["Có cái nhìn một chiều, sâu sắc hơn.","Có cái nhìn đa chiều, đầy đủ hơn.","Đầy đủ chứng cứ hơn.","Tính phản biện cao hơn."],x:1},
+{c:"1",q:"Người học cần vận dụng phương pháp tư duy nào trong triết học Mác – Lênin để có thể đánh giá sự vật, hiện tượng hoặc hành động đúng đắn, khách quan và khoa học?",a:["Tư duy trừu tượng.","Phương pháp tư duy siêu hình.","Tư duy phiến diện.","Phương pháp tư duy biện chứng."],x:3},
+{c:"1",q:"Ông cha ta có câu: “Không thầy đố mày làm nên”, đồng thời lại có câu “Học thầy không tày học bạn” điều này thể hiện tư duy gì của người Việt Nam?",a:["Siêu hình, tuyệt đối hóa một chiều.","Biện chứng.","Duy tâm.","Duy vật."],x:1},
+{c:"1",q:"Các hình thức cơ bản của phép biện chứng trong lịch sử là:",a:["Phép biện chứng tự phát, phép biện chứng duy tâm và phép biện chứng duy vật.","Phép biện chứng tự nhiên, phép biện chứng xã hội và phép biện chứng tư duy.","Phép biện chứng khách quan, phép biện chứng chủ quan và phép biện chứng duy ý chí.","Phép biện chứng toàn diện, phép biện chứng cụ thể và phép biện chứng lịch sử."],x:0},
+{c:"1",q:"Triết học Mác – Lênin là hệ thống quan điểm … về tự nhiên, xã hội và tư duy.",a:["Duy vật biện chứng.","Duy vật siêu hình.","Duy tâm khách quan.","Duy tâm chủ quan."],x:0},
+{c:"1",q:"Trong ba bộ phận cấu thành nên chủ nghĩa Mác - Lênin, bộ phận nào giữ vai trò là thế giới quan và phương pháp luận chung nhất?",a:["Triết học Mác – Lênin.","Kinh tế chính trị Mác – Lênin.","Chủ nghĩa xã hội khoa học.","Chủ nghĩa duy vật lịch sử."],x:0},
+{c:"1",q:"Phát kiến vĩ đại thiên tài của Mác trong lĩnh vực triết học là:",a:["Học thuyết giá trị thặng dư.","Chủ nghĩa duy vật lịch sử.","Sứ mệnh lịch sử của giai cấp công nhân.","Không có phát kiến thiên tài nào."],x:1},
+{c:"1",q:"Tại sao sinh viên cần phải học học phần Triết học Mác - Lênin?",a:["Vì đây là học phần bắt buộc.","Giúp sinh viên trang bị thế giới quan và phương pháp luận khoa học, cách mạng.","Vì triết học rất khó.","Triết học là khoa học của mọi khoa học."],x:1},
+{c:"1",q:"Khi thực hiện một đề tài kỹ thuật, sinh viên thu thập số liệu thí nghiệm, kiểm tra sai số và đối chiếu với kết quả thực tế trước khi đưa ra kết luận. Cách làm này vận dụng trực tiếp quan điểm nào?",a:["Lấy suy luận lý luận làm căn cứ chủ yếu, không cần kiểm chứng thực nghiệm.","Xem kết quả nghiên cứu phụ thuộc chủ yếu vào ý muốn của người nghiên cứu.","Xuất phát từ hiện thực khách quan và kiểm nghiệm nhận thức bằng thực tiễn.","Chỉ dựa vào những kết luận đã được thừa nhận trong giáo trình."],x:2},
+{c:"1",q:"Khi một thiết bị kỹ thuật liên tục phát sinh lỗi, nhóm sinh viên không chỉ thay thế linh kiện mà còn phân tích thiết kế, điều kiện vận hành, quy trình lắp ráp và dữ liệu sử dụng. Cách xử lý này vận dụng chủ yếu:",a:["Quan điểm toàn diện và quan điểm phát triển trong nhận thức sự vật.","Quan điểm cô lập sự vật để xác định một nguyên nhân duy nhất.","Phương pháp siêu hình nhằm phân chia hệ thống thành các bộ phận độc lập.","Quan điểm duy tâm vì coi trọng vai trò của hoạt động tư duy."],x:0},
+{c:"1",q:"Nếu được giao xây dựng một hệ thống đánh giá tác động của công nghệ trí tuệ nhân tạo (AI) đối với xã hội, phương án nào sau đây là sáng tạo nhất?",a:["Đánh giá chủ yếu dựa trên năng suất lao động và tốc độ đổi mới công nghệ.","Đánh giá đồng thời tác động đến năng suất, việc làm, quan hệ xã hội, giáo dục, quyền con người, dữ liệu và năng lực quản trị.","Tập trung kiểm soát những rủi ro trực tiếp của AI trước khi mở rộng ứng dụng trên thực tế.","Khuyến khích đổi mới công nghệ, sau đó điều chỉnh các vấn đề xã hội phát sinh bằng chính sách cụ thể."],x:1},
+{c:"1",q:"Mô hình sinh viên kỹ thuật TNUT chủ động đổi mới sáng tạo trong thời đại số nên được xây dựng như thế nào?",a:["Xây dựng hệ sinh thái gồm nền tảng lý luận khoa học, năng lực chuyên môn, tư duy biện chứng, kỹ năng số, nghiên cứu thực tiễn, hợp tác liên ngành và cơ chế thử nghiệm – phản hồi – cải tiến.","Tập trung đào tạo kỹ năng sử dụng công nghệ mới.","Tập trung vào các cuộc thi đổi mới sáng tạo.","Ưu tiên đào tạo những sinh viên có thành tích cao."],x:0}
+];
+
+let state=JSON.parse(localStorage.getItem("triethocnguu")||'{"score":0,"done":0,"days":[],"best":0}');
+let pool=[],i=0,correct=0,answered=false;
+
+function save(){localStorage.setItem("triethocnguu",JSON.stringify(state));renderStats()}
+function renderStats(){
+ document.getElementById("score").textContent=state.score;
+ document.getElementById("done").textContent=state.done;
+ let today=new Date().toISOString().slice(0,10);
+ let days=state.days||[];
+ let streak=0,d=new Date();
+ while(days.includes(d.toISOString().slice(0,10))){streak++;d.setDate(d.getDate()-1)}
+ document.getElementById("streak").textContent=streak;
+ document.getElementById("qstreak").textContent=streak;
+ document.getElementById("ach").innerHTML=
+ `<div class="rank">🏅 ${state.done>=1?"Bắt đầu học":"Chưa mở khóa"}</div>
+  <div class="rank">🔥 ${streak>=3?"Chuỗi 3 ngày":"Chuỗi 3 ngày — "+streak+"/3"}</div>
+  <div class="rank">⭐ ${state.score>=100?"100 điểm":"100 điểm — "+state.score+"/100"}</div>`;
+ document.getElementById("ranking").innerHTML=
+ `<div class="rank">🥇 Bạn — ${state.score} điểm</div>
+  <div class="rank">🥈 Người học khác — 0 điểm</div>
+  <div class="rank">🥉 Sinh viên Triết học — 0 điểm</div>`;
+}
+function shuffle(a){a=[...a];for(let j=a.length-1;j>0;j--){let k=Math.floor(Math.random()*(j+1));[a[j],a[k]]=[a[k],a[j]]}return a}
+function start(ch){
+ pool=shuffle(qs.filter(x=>ch==="all"||x.c===ch));i=0;correct=0;
+ document.getElementById("home").classList.add("hidden");
+ document.getElementById("result").classList.add("hidden");
+ document.getElementById("quiz").classList.remove("hidden");show();
+}
+function show(){
+ let z=pool[i];answered=false;
+ document.getElementById("progress").textContent=`Câu ${i+1}/${pool.length}`;
+ document.getElementById("bar").style.width=(i/pool.length*100)+"%";
+ document.getElementById("question").textContent=z.q;
+ let aa=shuffle(z.a.map((t,n)=>({t,n})));
+ document.getElementById("answers").innerHTML=aa.map(o=>`<button class="option" onclick="answer(${o.n},this)">${String.fromCharCode(65+o.n)}. ${o.t}</button>`).join("");
+}
+function answer(n,el){
+ if(answered)return;answered=true;
+ let z=pool[i], opts=document.querySelectorAll(".option");
+ opts.forEach((b,idx)=>{let letter=b.textContent.trim()[0];let num=letter.charCodeAt(0)-65;if(num===z.x)b.classList.add("correct")});
+ if(n===z.x){el.classList.add("correct");correct++;state.score+=10}else el.classList.add("wrong");
+ state.done++;
+ let today=new Date().toISOString().slice(0,10);
+ if(!state.days.includes(today))state.days.push(today);
+ save();
+ setTimeout(()=>{i++;if(i<pool.length)show();else finish()},650);
+}
+function finish(){
+ document.getElementById("quiz").classList.add("hidden");
+ let pct=Math.round(correct/pool.length*100);
+ document.getElementById("result").classList.remove("hidden");
+ document.getElementById("result").innerHTML=`<h2>🎉 Hoàn thành!</h2><p>Đúng <b>${correct}/${pool.length}</b> câu — <b>${pct}%</b></p><p>+${correct*10} điểm</p><button class="good" onclick="home()">Tiếp tục học</button>`;
+}
+function home(){document.getElementById("quiz").classList.add("hidden");document.getElementById("result").classList.add("hidden");document.getElementById("home").classList.remove("hidden");renderStats()}
+renderStats();
+</script>
+
+<script>
+(() => {
+  const KEY = 'triethocnguu';
+  const PLAYERS = 'triethocnguu_players';
+
+  let state = JSON.parse(localStorage.getItem(KEY) || '{}');
+  let players = JSON.parse(localStorage.getItem(PLAYERS) || '{}');
+
+  function save() {
+    localStorage.setItem(KEY, JSON.stringify(state));
+    localStorage.setItem(PLAYERS, JSON.stringify(players));
+  }
+
+  function login(name) {
+    name = name.trim().replace(/\s+/g,' ');
+    if (!name) return;
+    state.playerName = name;
+    if (!players[name]) players[name] = {score:0, correct:0, played:0, streak:0};
+    save();
+    document.getElementById('loginOverlay').style.display = 'none';
+    renderRanking();
+  }
+
+  function renderRanking() {
+    const el = document.getElementById('ranking');
+    if (!el) return;
+    const list = Object.entries(players)
+      .map(([name,p]) => ({name,...p}))
+      .sort((a,b) => (b.score-a.score) || (b.correct-a.correct) || (b.played-a.played))
+      .slice(0,50);
+
+    if (!list.length) {
+      el.innerHTML = '<p>Chưa có người chơi.</p>';
+      return;
+    }
+    el.innerHTML = `<table class="rankTable">
+      <thead><tr><th>#</th><th>Người chơi</th><th>Điểm</th><th>Đúng</th><th>Đã làm</th><th>🔥 Chuỗi</th></tr></thead>
+      <tbody>${list.map((x,i)=>`<tr class="${x.name===state.playerName?'meRow':''}">
+        <td>${i+1}</td><td>${escapeHtml(x.name)}</td><td>${x.score}</td>
+        <td>${x.correct}</td><td>${x.played}</td><td>${x.streak}</td>
+      </tr>`).join('')}</tbody>
+    </table>`;
+  }
+
+  function escapeHtml(s) {
+    return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  document.getElementById('loginBtn').addEventListener('click', () => {
+    login(document.getElementById('playerName').value);
+  });
+  document.getElementById('playerName').addEventListener('keydown', e => {
+    if (e.key === 'Enter') login(e.target.value);
+  });
+
+  if (state.playerName) {
+    document.getElementById('loginOverlay').style.display = 'none';
+  }
+
+  // Make ranking visible whenever the page renders.
+  setTimeout(renderRanking, 50);
+
+  // Public helper for the quiz code: call window.recordPlayerResult(score, correct, played)
+  window.recordPlayerResult = function(score, correct, played=1) {
+    if (!state.playerName) return;
+    const p = players[state.playerName] || {score:0,correct:0,played:0,streak:0};
+    p.score += Number(score)||0;
+    p.correct += Number(correct)||0;
+    p.played += Number(played)||0;
+    players[state.playerName] = p;
+    save();
+    renderRanking();
+  };
+
+  // Also expose logout / change-name without cluttering UI.
+  window.changePlayer = function() {
+    document.getElementById('loginOverlay').style.display='flex';
+    document.getElementById('playerName').value=state.playerName||'';
+    document.getElementById('playerName').focus();
+  };
+})();
+</script>
+
+<script>
+(() => {
+  let audioCtx;
+  function beep(freq, duration, type="sine", volume=0.12) {
+    try {
+      audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+      const o = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
+      o.type = type;
+      o.frequency.value = freq;
+      g.gain.setValueAtTime(volume, audioCtx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+      o.connect(g); g.connect(audioCtx.destination);
+      o.start(); o.stop(audioCtx.currentTime + duration);
+    } catch(e) {}
+  }
+  window.playCorrectSound = () => {
+    beep(660, .12, "sine", .13);
+    setTimeout(() => beep(880, .16, "sine", .13), 100);
+  };
+  window.playWrongSound = () => {
+    beep(220, .18, "sawtooth", .12);
+    setTimeout(() => beep(165, .22, "sawtooth", .10), 130);
+  };
+})();
+</script>
+</body>
+</html>
